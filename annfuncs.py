@@ -97,7 +97,6 @@ def tanh_backward(dA,cache):
     return dZ
 
 
-def load_data():
     train_dataset = h5py.File('datasets/train_catvnoncat.h5', "r")
     train_set_x_orig = np.array(train_dataset["train_set_x"][:]) # your train set features
     train_set_y_orig = np.array(train_dataset["train_set_y"][:]) # your train set labels
@@ -147,9 +146,6 @@ def initialize_parameters(n_x, n_h, n_y):
                   "b2": b2}
     
     return parameters     
-
-    
-
 
 def initialize_parameters_deep(layer_dims):
     """
@@ -530,38 +526,13 @@ def predictvals(x, parameters,activation):
     probas, caches = L_model_forward(x, parameters,activation)
     return probas
 
-def predictmape(x,y,parameters,lambd,activation):
-    probas, caches = L_model_forward(x, parameters,activation)
-    mape=compute_cost(probas,y,parameters,lambd,regularisation='None',cost_func='mape')
-    return mape
 
-def predictmse(x,y,parameters,lambd,activation):
-    probas, caches = L_model_forward(x, parameters,activation)
-    mse=compute_cost(probas,y,parameters,lambd,regularisation='None',cost_func='mse')
-    return mse
 
 def predicterr(x,y,parameters,lambd,activation,regularisation,cost_func):
     probas, caches = L_model_forward(x, parameters,activation)
     err=compute_cost(probas,y,parameters=parameters,lambd=lambd,regularisation=regularisation,cost_func=cost_func)
     return err
-def print_mislabeled_images(classes, X, y, p):
-    """
-    Plots images where predictions and truth were different.
-    X -- dataset
-    y -- true labels
-    p -- predictions
-    """
-    a = p + y
-    mislabeled_indices = np.asarray(np.where(a == 1))
-    plt.rcParams['figure.figsize'] = (40.0, 40.0) # set default size of plots
-    num_images = len(mislabeled_indices[0])
-    for i in range(num_images):
-        index = mislabeled_indices[1][i]
-        
-        plt.subplot(2, num_images, i + 1)
-        plt.imshow(X[:,index].reshape(64,64,3), interpolation='nearest')
-        plt.axis('off')
-        plt.title("Prediction: " + classes[int(p[0,index])].decode("utf-8") + " \n Class: " + classes[y[0,index]].decode("utf-8"))
+ 
 
 
 def initialize_adam(parameters) :
@@ -601,6 +572,33 @@ def initialize_adam(parameters) :
     return v, s
 
 
+def initialize_velocity(parameters):
+    """
+    Initializes the velocity as a python dictionary with:
+                - keys: "dW1", "db1", ..., "dWL", "dbL" 
+                - values: numpy arrays of zeros of the same shape as the corresponding gradients/parameters.
+    Arguments:
+    parameters -- python dictionary containing your parameters.
+                    parameters['W' + str(l)] = Wl
+                    parameters['b' + str(l)] = bl
+    
+    Returns:
+    v -- python dictionary containing the current velocity.
+                    v['dW' + str(l)] = velocity of dWl
+                    v['db' + str(l)] = velocity of dbl
+    """
+    
+    L = len(parameters) // 2 # number of layers in the neural networks
+    v = {}
+    
+    # Initialize velocity
+    for l in range(L):
+        ### START CODE HERE ### (approx. 2 lines)
+        v["dW" + str(l+1)] = np.zeros(parameters["W"+str(l+1)].shape)
+        v["db" + str(l+1)] = np.zeros(parameters["b"+str(l+1)].shape)
+        ### END CODE HERE ###
+        
+    return v
 
 def update_parameters_with_adam(parameters, grads, v, s, t, learning_rate = 0.01,
                                 beta1 = 0.9, beta2 = 0.999,  epsilon = 1e-8):
@@ -665,98 +663,43 @@ def update_parameters_with_adam(parameters, grads, v, s, t, learning_rate = 0.01
 
     return parameters, v, s
 
-
-
-
-
-def L_layer_model(X, Y, layers_dims,valid=False,valid_x=None,valid_y=None, learning_rate = 0.0075, num_iterations = 3000, print_cost=False,lambd=0.1, 
-                  optimizer="none", beta = 0.9,beta1 = 0.9, beta2 = 0.999,  epsilon = 1e-8,regularisation='none',
-                  activation='sigmoid',cost_func='mse'):#lr was 0.009
+def update_parameters_with_momentum(parameters, grads, v, beta, learning_rate):
     """
-    Implements a L-layer neural network: [LINEAR->RELU]*(L-1)->LINEAR->SIGMOID.
+    Update parameters using Momentum
     
     Arguments:
-    X -- data, numpy array of shape (num_px * num_px * 3, number of examples)
-    Y -- true "label" vector (containing 0 if cat, 1 if non-cat), of shape (1, number of examples)
-    layers_dims -- list containing the input size and each layer size, of length (number of layers + 1).
-    learning_rate -- learning rate of the gradient descent update rule
-    num_iterations -- number of iterations of the optimization loop
-    print_cost -- if True, it prints the cost every 100 steps
+    parameters -- python dictionary containing your parameters:
+                    parameters['W' + str(l)] = Wl
+                    parameters['b' + str(l)] = bl
+    grads -- python dictionary containing your gradients for each parameters:
+                    grads['dW' + str(l)] = dWl
+                    grads['db' + str(l)] = dbl
+    v -- python dictionary containing the current velocity:
+                    v['dW' + str(l)] = ...
+                    v['db' + str(l)] = ...
+    beta -- the momentum hyperparameter, scalar
+    learning_rate -- the learning rate, scalar
     
     Returns:
-    parameters -- parameters learnt by the model. They can then be used to predict.
+    parameters -- python dictionary containing your updated parameters 
+    v -- python dictionary containing your updated velocities
     """
-    t = 0  
-    np.random.seed(1)
-    costs = []  
-    validcosts=[]                       # keep track of cost
-    
-    # Parameters initialization. (≈ 1 line of code)
-    ### START CODE HERE ###
-    parameters = initialize_parameters_deep_he(layers_dims)
-    ### END CODE HERE ###
-    
-    if optimizer == "gd":
-        pass # no initialization required for gradient descent
-    elif optimizer == "momentum":
-        v = initialize_velocity(parameters)
-    elif optimizer == "adam":
-        v, s = initialize_adam(parameters)
-    
-    # Loop (gradient descent)
-    for i in range(0, num_iterations):
 
-        # Forward propagation: [LINEAR -> RELU]*(L-1) -> LINEAR -> SIGMOID.
-        ### START CODE HERE ### (≈ 1 line of code)
-        AL, caches = L_model_forward(X,parameters,activation)
+    L = len(parameters) // 2 # number of layers in the neural networks
+    
+    # Momentum update for each parameter
+    for l in range(L):
+        
+        ### START CODE HERE ### (approx. 4 lines)
+        # compute velocities
+        v["dW" + str(l+1)] = beta*v["dW" + str(l+1)] +(1-beta)*grads["dW" + str(l+1)]
+        v["db" + str(l+1)] = v["db" + str(l+1)]*beta +(1-beta)*grads["db" + str(l+1)]
+        # update parameters
+        parameters["W" + str(l+1)] =  parameters["W" + str(l+1)]-learning_rate*(v["dW" + str(l+1)])
+        parameters["b" + str(l+1)] =  parameters["b" + str(l+1)]-learning_rate*(v["db" + str(l+1)])
         ### END CODE HERE ###
         
-        # Compute cost.
-        ### START CODE HERE ### (≈ 1 line of code)
-        cost = compute_cost(AL,Y,parameters,lambd,regularisation,cost_func)
-        ### END CODE HERE ###
-    
-        # Backward propagation.
-        ### START CODE HERE ### (≈ 1 line of code)
-        grads = L_model_backward(AL,Y,caches,activation,regularisation,lambd,cost_func)
-        ### END CODE HERE ###
- 
-        # Update parameters.
-        ### START CODE HERE ### (≈ 1 line of code)
-        #         parameters = update_parameters(parameters,grads,learning_rate)
-        if optimizer == "gd" or optimizer=='none':
-                parameters = update_parameters(parameters, grads, learning_rate)
-        elif optimizer == "momentum":
-            parameters, v = update_parameters_with_momentum(parameters, grads, v, beta, learning_rate)
-        elif optimizer == "adam":
-            t = t + 1 # Adam counter
-            parameters, v, s = update_parameters_with_adam(parameters, grads, v, s,
-                                                           t, learning_rate, beta1, beta2,  epsilon)
-        ### END CODE HERE ###
-
-                
-        # Print the cost every 100 training example
-        if print_cost and i % 100 == 0:
-            if(valid==True):
-                valid_err=predicterr(valid_x,valid_y,parameters,lambd,regularisation,activation,cost_func)
-                print ("Cost and valid cost after iteration %i: %f %f" %(i, cost,valid_err))
-                validcosts.append(valid_err)
-            else:
-                print ("Cost and valid cost after iteration %i: %f" %(i, cost))
-            costs.append(cost)
-
-            
-    # plot the cost
-    plt.plot(np.squeeze(costs))
-    if(valid==True):
-        plt.plot(np.squeeze(validcosts))
-        plt.legend(["train", "validation"], loc ="upper right")
-    plt.ylabel('cost')
-    plt.xlabel('iterations (per hundreds)')
-    plt.title("Learning rate =" + str(learning_rate))
-    plt.show()
-    
-    return parameters
+    return parameters, v
 
 
 def random_mini_batches(X, Y, mini_batch_size = 64, seed = 0):
@@ -801,7 +744,6 @@ def random_mini_batches(X, Y, mini_batch_size = 64, seed = 0):
         mini_batches.append(mini_batch)
     
     return mini_batches
-
 
 
 def L_layer_model_minib(X, Y,layers_dims,valid=False,valid_x=None,valid_y=None, optimizer='none', learning_rate = 0.0007,he_init=False, 
