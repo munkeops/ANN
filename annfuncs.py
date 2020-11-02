@@ -151,7 +151,7 @@ def initialize_parameters(n_x, n_h, n_y):
     
 
 
-def initialize_parameters_deep(layers_dims):
+def initialize_parameters_deep(layer_dims):
     """
     Arguments:
     layer_dims -- python array (list) containing the dimensions of each layer in our network
@@ -167,7 +167,11 @@ def initialize_parameters_deep(layers_dims):
     L = len(layer_dims)            # number of layers in the network
 
     for l in range(1, L):
-        parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1]) / np.sqrt(layer_dims[l-1]) #*0.01
+        # if(type=="zeros"):
+            # parameters['W' + str(l)]=np.zeros(layer_dims[l],layer_dims[l-1])
+        parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1])# / np.sqrt(layer_dims[l-1]) #*0.01
+        # else:
+            
         parameters['b' + str(l)] = np.zeros((layer_dims[l], 1))
         
         assert(parameters['W' + str(l)].shape == (layer_dims[l], layer_dims[l-1]))
@@ -326,10 +330,11 @@ def compute_cost(AL, Y,parameters,lambd,regularisation,cost_func='mse'):
     if (cost_func=='mape'):
         # epsilon=0.001
         # cost=(1./m)*np.sum(np.absolute(Y-AL)/(np.absolute(Y)+epsilon))*100
+        
         cost=np.mean(np.abs((Y-AL)/(Y+epsilon)))*100
 
     if (cost_func=='mse'):
-        cost=(1./m) * np.sum(np.square(AL-Y))
+        cost=np.mean(np.square(AL-Y))*0.5
 
     ##adding regularisation
     if(regularisation=='L2'):
@@ -346,6 +351,11 @@ def compute_cost(AL, Y,parameters,lambd,regularisation,cost_func='mse'):
     assert(cost.shape == ())
     if(regularisation=='L2'):
         cost=cost+L2_regularization_cost
+    return cost
+
+def mape_cost(Y,AL):
+    epsilon=0.001
+    cost=np.mean(np.abs((Y-AL)/(Y+epsilon)))*100
     return cost
 
 def linear_backward(dZ, cache,regularisation,lambd):
@@ -438,7 +448,7 @@ def L_model_backward(AL, Y, caches,activation,regularisation,lambd,cost_func='lo
     if(cost_func=='log'):
         dAL = - (np.divide(Y, AL) - np.divide(1 - Y, 1 - AL))
     if(cost_func=='mse'):
-        dAL=2*(AL-Y)
+        dAL=(AL-Y)
     
     # dAL = (1/np.absolute(Y))*np.absolute(AL-Y)/(AL-Y)
     # print(AL[0:10])
@@ -794,7 +804,7 @@ def random_mini_batches(X, Y, mini_batch_size = 64, seed = 0):
 
 
 
-def L_layer_model_minib(X, Y,layers_dims,valid=False,valid_x=None,valid_y=None, optimizer='none', learning_rate = 0.0007, 
+def L_layer_model_minib(X, Y,layers_dims,valid=False,valid_x=None,valid_y=None, optimizer='none', learning_rate = 0.0007,he_init=False, 
                         mini_batch_size = 64, beta = 0.9,beta1 = 0.9, beta2 = 0.999,  epsilon = 1e-8, num_iterations = 10000,
                         activation='sigmoid',regularisation='none',print_cost = True,lambd=0.1,cost_func='mse'):
     """
@@ -827,7 +837,10 @@ def L_layer_model_minib(X, Y,layers_dims,valid=False,valid_x=None,valid_y=None, 
     
     # Initialize parameters
     # parameters = initialize_parameters(layers_dims)
-    parameters=initialize_parameters_deep_he(layers_dims)
+    if(he_init):
+        parameters=initialize_parameters_deep_he(layers_dims)
+    else:
+        parameters=initialize_parameters_deep(layers_dims)
 
     # Initialize the optimizer
     if optimizer == "gd":
