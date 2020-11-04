@@ -97,21 +97,6 @@ def tanh_backward(dA,cache):
     return dZ
 
 
-    train_dataset = h5py.File('datasets/train_catvnoncat.h5', "r")
-    train_set_x_orig = np.array(train_dataset["train_set_x"][:]) # your train set features
-    train_set_y_orig = np.array(train_dataset["train_set_y"][:]) # your train set labels
-
-    test_dataset = h5py.File('datasets/test_catvnoncat.h5', "r")
-    test_set_x_orig = np.array(test_dataset["test_set_x"][:]) # your test set features
-    test_set_y_orig = np.array(test_dataset["test_set_y"][:]) # your test set labels
-
-    classes = np.array(test_dataset["list_classes"][:]) # the list of classes
-    
-    train_set_y_orig = train_set_y_orig.reshape((1, train_set_y_orig.shape[0]))
-    test_set_y_orig = test_set_y_orig.reshape((1, test_set_y_orig.shape[0]))
-    
-    return train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig, classes
-
 
 def initialize_parameters(n_x, n_h, n_y):
     """
@@ -465,7 +450,7 @@ def L_model_backward(AL, Y, caches,activation,regularisation,lambd,cost_func='lo
 
 
 
-def update_parameters(parameters, grads, learning_rate):
+def update_parameters(parameters, grads, learning_rate,regularisation,lambd):
     """
     Update parameters using gradient descent
     
@@ -483,6 +468,10 @@ def update_parameters(parameters, grads, learning_rate):
 
     # Update rule for each parameter. Use a for loop.
     for l in range(L):
+        # if(regularisation=="L2"):
+        #     parameters["W" + str(l+1)] = parameters["W" + str(l+1)] - learning_rate * (grads["dW" + str(l+1)]+lambd*parameters["W" + str(l+1)]*(1/m))
+        #     parameters["b" + str(l+1)] = parameters["b" + str(l+1)] - learning_rate * grads["db" + str(l+1)]
+        # else:
         parameters["W" + str(l+1)] = parameters["W" + str(l+1)] - learning_rate * grads["dW" + str(l+1)]
         parameters["b" + str(l+1)] = parameters["b" + str(l+1)] - learning_rate * grads["db" + str(l+1)]
         
@@ -826,7 +815,7 @@ def L_layer_model_minib(X, Y,layers_dims,valid=False,valid_x=None,valid_y=None, 
         cost_avg = cost_total / batches
         
         # Print the cost every 1000 epoch
-        if print_cost and i % 1 == 0:
+        if print_cost and i % 3 == 0:
             if(valid==True):
                 valid_err=predicterr(valid_x,valid_y,parameters=parameters,lambd=lambd,activation=activation,regularisation=regularisation,cost_func=cost_func)
                 validcosts.append(valid_err)
