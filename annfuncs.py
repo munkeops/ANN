@@ -330,7 +330,7 @@ def compute_cost(AL, Y,parameters,lambd,regularisation,cost_func='mse'):
     
     cost = np.squeeze(cost)      # To make sure your cost's shape is what we expect (e.g. this turns [[17]] into 17).
     assert(cost.shape == ())
-    if(regularisation=='L2'):
+    if(regularisation=='L22'):
         cost=cost+L2_regularization_cost
     return cost
 
@@ -450,7 +450,7 @@ def L_model_backward(AL, Y, caches,activation,regularisation,lambd,cost_func='lo
 
 
 
-def update_parameters(parameters, grads, learning_rate,regularisation,lambd):
+def update_parameters(parameters, grads, learning_rate):
     """
     Update parameters using gradient descent
     
@@ -815,9 +815,9 @@ def L_layer_model_minib(X, Y,layers_dims,valid=False,valid_x=None,valid_y=None, 
         cost_avg = cost_total / batches
         
         # Print the cost every 1000 epoch
-        if print_cost and i % 3 == 0:
+        if print_cost and i % 1 == 0:
             if(valid==True):
-                valid_err=predicterr(valid_x,valid_y,parameters=parameters,lambd=lambd,activation=activation,regularisation=regularisation,cost_func=cost_func)
+                valid_err=predicterr(valid_x,valid_y,parameters=parameters,lambd=lambd,activation=activation,regularisation='none',cost_func=cost_func)
                 validcosts.append(valid_err)
                 print ("Cost after epoch %i: %f  %f" %(i, cost_avg,valid_err))
             else:
@@ -830,7 +830,7 @@ def L_layer_model_minib(X, Y,layers_dims,valid=False,valid_x=None,valid_y=None, 
         plt.plot(validcosts)
         plt.legend(["train", "validation"], loc ="upper right") 
     plt.ylabel('cost')
-    plt.xlabel('epochs (per 100)')
+    plt.xlabel('epochs')
     plt.title("Learning rate = " + str(learning_rate))
     plt.show()
 
