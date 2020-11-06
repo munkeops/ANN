@@ -330,7 +330,7 @@ def compute_cost(AL, Y,parameters,lambd,regularisation,cost_func='mse'):
     
     cost = np.squeeze(cost)      # To make sure your cost's shape is what we expect (e.g. this turns [[17]] into 17).
     assert(cost.shape == ())
-    if(regularisation=='L22'):
+    if(regularisation=='L2'):
         cost=cost+L2_regularization_cost
     return cost
 
